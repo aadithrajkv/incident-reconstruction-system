@@ -1,0 +1,36 @@
+# Python cache and local environment
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+
+# OS/editor noise
+.DS_Store
+*.swp
+*.swo
+.idea/
+.vscode/
+
+# Generated databases and runtime output
+db/*.db
+db/*.sqlite
+db/*.sqlite3
+output/
+
+# Generated project/incident reports and screenshots
+reports/
+reports/*.png
+reports/*.pdf
+reports/*.docx
+reports/*.pptx
+reports/incident_report.md
+incident_report.md
+
+# Node/runtime artifacts used only for generated report tooling
+reports/node_modules/
+reports/package-lock.json
+
+# Local model/cache artifacts
+*.log.cache
+*.tmp

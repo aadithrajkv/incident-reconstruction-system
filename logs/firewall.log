@@ -1,0 +1,4 @@
+2024-11-15T02:09:44 edge-fw firewall: action=DENY src=203.0.113.47 dst=10.0.0.10 proto=TCP dpt=22
+2024-11-15T02:09:47 edge-fw firewall: action=DENY src=203.0.113.47 dst=10.0.0.11 proto=TCP dpt=22
+2024-11-15T02:09:51 edge-fw firewall: action=DENY src=203.0.113.47 dst=10.0.0.12 proto=TCP dpt=22
+2024-11-15T02:13:12 edge-fw firewall: action=ALLOW src=10.0.0.5 dst=10.0.0.20 proto=TCP dpt=443
