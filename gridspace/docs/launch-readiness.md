@@ -16,17 +16,26 @@
 - The frontend contains only the Supabase publishable key. No service-role or SMS provider secret is in the repo.
 - Security response headers are prepared in `vercel.json`. The inline app script was moved to `app.js` so the script CSP can disallow inline scripts.
 
+## Invited pilot implementation status
+
+- Supabase Anonymous Auth is invite-gated by one-use codes. The database stores invite digests only and blocks shared-table access until redemption.
+- Accurate device location is sent only to the `assign-home-grid` Edge Function; the server recomputes the grid and stores only the grid ID.
+- Invited users read/write shared thoughts, issue reports, and followed grids. Thought seeds and the 15-active-thought cap are enforced in Postgres. Issues are private to their author until moderation publishes them.
+- Authenticated contribution data is loaded from Supabase, not retained in browser storage. The explicit local-preview path stays browser-only.
+- Local business/offer setup, realtime updates and push notifications remain unconnected. The browser cannot currently provide moderation, account deletion, or content reporting.
+
 ## Not ready for public traffic
 
-The static preview still saves thoughts, issues, business updates, and follows in browser storage. The live Supabase tables are not yet connected to those screens. Hosted phone Auth is disabled, fixed-code local Auth has not run because Docker Desktop storage is constrained, and there is no server-side home-grid assignment endpoint or moderation console. Thus the current UI is a single-browser prototype; publishing it as the public civic service would falsely imply that reports are shared and would bypass the intended moderation/data path.
+The pilot is not ready for public or general invited use yet. Supabase Anonymous Auth and CAPTCHA still need to be enabled in project settings; no recovery method exists for anonymous accounts. Moderation UI, reports, account deletion, and two-user RLS tests are still outstanding. The local business/offer flow remains a browser prototype. Invite only a supervised cohort after these items are complete and the shared flows pass authenticated RLS verification.
 
 Before public launch:
 
-1. Enable a real sign-in path, then wire reads/writes to Supabase and test each RLS rule using separate accounts.
-2. Set a trusted grid assignment action, report/user rate limits, abuse reporting, moderation and resolution workflow, and photo deletion/retention.
+1. Enable Anonymous Auth and CAPTCHA in Supabase settings; decide how users will recover accounts before using the pilot beyond a supervised test.
+2. Add report/user rate limits, abuse reporting, moderation and resolution workflow, and photo deletion/retention.
 3. Add an accessible privacy notice and consent for public issue images; never expose exact device coordinates.
-4. Decide the hosting account and publish a reviewed preview. Then attach the domain and verify HTTPS before promotion.
+4. Add account deletion and content ownership controls; test each RLS rule using separate accounts.
 5. Confirm that a human moderator can publish a report and that another authenticated user sees only published issues and their authorized image.
+6. Complete a privacy review and staged deployment check before promoting beyond the preview domain.
 
 ## Domain and hosting status checked 2026-11-19
 
