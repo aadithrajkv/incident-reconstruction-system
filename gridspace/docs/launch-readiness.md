@@ -23,16 +23,17 @@
 - Invited users read/write shared thoughts, issue reports, and followed grids. Thought seeds and the 15-active-thought cap are enforced in Postgres. Issues are private to their author until moderation publishes them.
 - Members can report published thoughts or issues. Reports are private to their author and moderators, with one report per member/content and a 10-report hourly cap. A moderator-only queue can publish or hide content and writes a private action audit.
 - Members can delete their own thoughts and issues. The account dialog permanently deletes the anonymous Auth user, its database-owned data, and referenced private issue photos.
+- On joining, members receive a one-use restore key. It transfers shared data into a new anonymous identity if browser storage is lost; it cannot recreate the original Auth ID. Rotating a key invalidates the previous one.
 - Authenticated contribution data is loaded from Supabase, not retained in browser storage. The explicit local-preview path stays browser-only.
 - Local business/offer setup, realtime updates, and push notifications remain unconnected. A moderator still needs to be assigned.
 
 ## Not ready for public traffic
 
-The pilot is not ready for public or general invited use yet. Supabase Anonymous Auth and CAPTCHA still need to be enabled in project settings; no recovery method exists for anonymous accounts. A moderator still needs to be assigned, and the local business/offer flow remains a browser prototype. Account deletion is implemented but has not been exercised against a real invited account. The requested two-user RLS regression checks pass in a rollback transaction, but full browser auth/upload/moderation/deletion flows still need a real invited account.
+The pilot is not ready for public or general invited use yet. Supabase Anonymous Auth and CAPTCHA still need to be enabled in project settings. A moderator still needs to be assigned, and the local business/offer flow remains a browser prototype. Account deletion and restore transfer have not been exercised against a real invited account. The two-user RLS regression checks pass in a rollback transaction; a rollback-only restore transfer test is also prepared. Full browser auth/upload/moderation/deletion/restore flows still need a real invited account.
 
 Before public launch:
 
-1. Enable Anonymous Auth and CAPTCHA in Supabase settings; decide how users will recover accounts before using the pilot beyond a supervised test.
+1. Enable Anonymous Auth and CAPTCHA in Supabase settings; explain that restore keys transfer shared data to a new anonymous ID and must be saved privately.
 2. Assign and train a moderator, then confirm report review, hide/publish actions, and photo deletion/retention.
 3. Add an accessible privacy notice and consent for public issue images; never expose exact device coordinates.
 4. Exercise account deletion and content ownership controls with a dedicated test account; continue adding regression cases as moderation and business features expand.

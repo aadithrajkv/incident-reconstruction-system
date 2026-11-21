@@ -453,6 +453,12 @@ entrypoint = "./functions/redeem-pilot-invite/index.ts"
 # For example, if you want to serve static HTML pages in your function:
 # static_files = [ "./functions/redeem-pilot-invite/*.html" ]
 
+[functions.pilot-recovery]
+enabled = true
+verify_jwt = true
+import_map = "./functions/pilot-recovery/deno.json"
+entrypoint = "./functions/pilot-recovery/index.ts"
+
 [functions.moderate-content]
 enabled = true
 verify_jwt = true

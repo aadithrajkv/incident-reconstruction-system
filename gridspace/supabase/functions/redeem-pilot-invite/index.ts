@@ -37,6 +37,15 @@ async function digestInvite(code: string): Promise<string> {
   return Array.from(new Uint8Array(hash), (byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
+async function digestRecoveryToken(token: string): Promise<string> {
+  const hash = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(token));
+  return Array.from(new Uint8Array(hash), (byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+function newRecoveryToken(): string {
+  return Array.from(crypto.getRandomValues(new Uint8Array(32)), (byte) => byte.toString(16).padStart(2, "0")).join("").toUpperCase();
+}
+
 const handler = withSupabase({ auth: "user" }, async (request, ctx) => {
   if (request.method !== "POST") return errorResponse(405, "Use POST to redeem an invite.");
   const userId = ctx.userClaims?.id;
@@ -67,21 +76,28 @@ const handler = withSupabase({ auth: "user" }, async (request, ctx) => {
 
   const { data: alreadyEnrolled, error: statusError } = await ctx.supabase.rpc("pilot_access_status");
   if (statusError) return errorResponse(503, "Could not check pilot access. Try again shortly.");
-  if (alreadyEnrolled === true) return Response.json({ enrolled: true }, { headers: { "Cache-Control": "no-store" } });
+  if (alreadyEnrolled !== true) {
+    const codeDigest = await digestInvite(code);
+    const { data, error } = await ctx.supabaseAdmin.rpc("redeem_pilot_invite_server_only", {
+      p_user_id: userId,
+      p_code_digest: codeDigest,
+    });
 
-  const codeDigest = await digestInvite(code);
-  const { data, error } = await ctx.supabaseAdmin.rpc("redeem_pilot_invite_server_only", {
-    p_user_id: userId,
-    p_code_digest: codeDigest,
-  });
-
-  if (error) return errorResponse(503, "Could not redeem the invite. Try again shortly.");
-  if (data === "rate_limited") return errorResponse(429, "Too many attempts. Try again in an hour.");
-  if (data !== "enrolled" && data !== "already_enrolled") {
-    return errorResponse(403, "That invite code is invalid, expired, or already used.");
+    if (error) return errorResponse(503, "Could not redeem the invite. Try again shortly.");
+    if (data === "rate_limited") return errorResponse(429, "Too many attempts. Try again in an hour.");
+    if (data !== "enrolled" && data !== "already_enrolled") {
+      return errorResponse(403, "That invite code is invalid, expired, or already used.");
+    }
   }
 
-  return Response.json({ enrolled: true }, { headers: { "Cache-Control": "no-store" } });
+  const recoveryToken = newRecoveryToken();
+  const tokenDigest = await digestRecoveryToken(recoveryToken);
+  const { error: tokenError } = await ctx.supabaseAdmin.rpc("store_pilot_recovery_token_server_only", {
+    p_user_id: userId,
+    p_token_digest: tokenDigest,
+  });
+  if (tokenError) return errorResponse(503, "Access is active, but a restore key could not be created. Retry with the same invite.");
+  return Response.json({ enrolled: true, recoveryToken }, { headers: { "Cache-Control": "no-store" } });
 });
 
 Deno.serve(async (request) => {

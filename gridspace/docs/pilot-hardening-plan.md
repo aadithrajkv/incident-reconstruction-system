@@ -11,7 +11,7 @@
 
 1. Plan: this document.
 2. Trusted grid assignment: `supabase/functions/assign-home-grid/index.ts`, `supabase/functions/assign-home-grid/deno.json`, `supabase/functions/assign-home-grid/.npmrc`, `supabase/config.toml`, and the CLI-generated `supabase/migrations/20261121044856_home_grid_assignment_rate_limit.sql`. Authenticate the caller, validate coordinates and accuracy, compute the existing axial hex ID on the server, rate-limit per user, and update only `profiles.home_grid_id`. Do not store or log raw coordinates. This prevents client-supplied grid IDs from authorizing writes; browser GPS remains spoofable and is not proof of physical presence.
-3. Sign-in decision: approved anonymous Supabase Auth with a one-use invite gate. Changed `auth-config.js`, `index.html`, `app.js`, `supabase/config.toml`, `supabase/migrations/20261121063513_anonymous_pilot_invites_and_access.sql`, and `supabase/functions/redeem-pilot-invite/{index.ts,deno.json,.npmrc,deno.lock}`. The hosted Anonymous Sign-Ins and CAPTCHA provider settings still need Dashboard configuration. Supabase anonymous sessions cannot be recovered after clearing browser data or signing out; a real recovery path needs a linked verified email, phone, or OAuth identity.
+3. Sign-in decision: approved anonymous Supabase Auth with a one-use invite gate. Changed `auth-config.js`, `index.html`, `app.js`, `supabase/config.toml`, `supabase/migrations/20261121063513_anonymous_pilot_invites_and_access.sql`, and `supabase/functions/redeem-pilot-invite/{index.ts,deno.json,.npmrc,deno.lock}`. The hosted Anonymous Sign-Ins and CAPTCHA provider settings still need Dashboard configuration. A one-use restore key can now transfer shared pilot data to a new anonymous Auth identity; it cannot restore the original Auth ID.
 4. Shared data: completed in `app.js` and migrations `20261121080000_shared_pilot_contributions.sql` and `20261121081000_private_seed_refresh.sql`. Invited users read/write shared thoughts, issues, and follows; local preview remains browser-only. The database enforces the daily seed balance and 15-active-thought cap. Issue images are resized and uploaded to the private bucket; new issues remain pending review. LocalStorage is stripped of shared contributions in authenticated mode.
 5. Safety and moderation: implemented in `app.js`, `supabase/functions/moderate-content/`, `supabase/config.toml`, and migrations `20261121090000_reports_and_moderation.sql` and `20261121100000_report_rate_limit.sql`. Reports are private to the reporter/moderators, limited to 10 per hour per user, and only one report per user/content. Moderators can publish/hide reported content through the JWT-verified Edge Function. A trusted operator still needs to add a moderator user ID in the private role table.
 6. Deletion: implemented with `supabase/functions/delete-account/` and `supabase/functions/delete-own-content/`, account/content controls in `index.html` and `app.js`, and the existing owner-scoped RLS policies. Account deletion removes private issue photos before deleting the Auth user; foreign-key cascades remove owned content, follows, reports, and profile rows.
@@ -29,7 +29,7 @@
 - The frontend uses Supabase Anonymous Auth and the invite Edge Function; the pilot database contains one-use invite digests and restrictive membership policies on shared tables.
 - One hundred invite codes are generated; only the hashes are in Supabase. The plaintext list is local and Git-excluded.
 - Supabase Anonymous Auth and Turnstile have not been enabled in project settings. The connected Supabase tools do not expose those settings, and Turnstile still needs a site key and secret. Do not describe the pilot as ready for invited users until these dashboard settings are completed.
-- Anonymous sessions are device-bound. There is no one-time recovery token; account recovery requires linking a verified identity later.
+- Anonymous sessions remain device-bound until a user saves a one-time restore key. A restore transfers shared data to a new anonymous identity; it does not restore the old Auth ID or prove identity. Restore keys are bearer credentials and must be kept private.
 
 ## Step 4 verification
 
@@ -61,10 +61,18 @@
 
 - The UI does not request a name, email, or phone number. Anonymous auth still creates a pseudonymous user ID and stores session credentials in browser storage; this is not a guarantee of DPDP compliance.
 - Shared tables remain inaccessible until the authenticated user redeems a one-use invite. The Supabase Edge Function validates the session and the database stores only invite-code digests.
-- A genuine recovery token is not implemented: Supabase anonymous users cannot sign back into the same identity after sign-out, cleared browser storage, or switching devices. Do not call a copied session token a recovery mechanism. Use verified email, phone, or OAuth identity linking if account recovery is required.
+- A one-use restore key is implemented for transferring shared data to a newly created anonymous session after sign-out, cleared browser storage, or switching devices. It does not recreate the original Auth ID or prove that the person presenting the key is the original user. Anyone with the key can transfer that account's pilot data; store it privately and offline. A verified email, phone, or OAuth identity remains the stronger recovery option for a later phase.
 - To enable sign-in, turn on Anonymous Sign-Ins in Supabase Auth > Providers. To enable CAPTCHA, create a Cloudflare Turnstile widget, set its secret in Supabase Auth > Bot and Abuse Protection, and put only the site key in `auth-config.js`. No CAPTCHA secret belongs in this repository.
 - One hundred one-use invitation codes are stored in the pilot database as SHA-256 digests. The plaintext copy is local and excluded from Git at `.pilot-invites.csv`; share one code with each invited tester.
 - User-generated thoughts/issues, precise business coordinates, and platform logs can still contain or reveal personal data. Have India privacy counsel review consent, purpose, retention, access, and deletion before a wider launch.
+
+## Restore-key implementation status
+
+- Invite redemption now returns a 256-bit random restore key once; only its SHA-256 digest is stored in the private schema.
+- The account dialog can rotate the key; the landing screen can restore data into a fresh anonymous session. Restoring consumes the key and issues a replacement.
+- The data-transfer RPC is service-role-only, rate-limits attempts per new anonymous identity, and transfers pilot-owned rows plus the home grid without storing raw coordinates. Moderator identities cannot use anonymous restore keys; an operator must reassign moderator access to a fresh account.
+- `supabase/tests/database/anonymous_restore.test.sql` passed a rollback-only transfer of membership, thought, issue, report, follow, home-grid, business, and offer data; a follow-up query confirmed no fixture rows remained. Both Edge Functions are active with JWT verification, and unauthenticated calls returned 401. The browser flow still needs Dashboard Auth/CAPTCHA settings and a real invited account before human end-to-end verification.
+- `node --check app.js` and `git diff --check` pass. Deno is not installed in this workspace, so local `deno check` was unavailable; both function deployments completed successfully. The pilot's security advisor still reports INFO-only findings for intentionally private RLS tables without client policies.
 
 ## Stop points
 
