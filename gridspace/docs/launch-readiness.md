@@ -28,14 +28,14 @@
 
 ## Not ready for public traffic
 
-The pilot is not ready for public or general invited use yet. Supabase Anonymous Auth and CAPTCHA still need to be enabled in project settings; no recovery method exists for anonymous accounts. A moderator still needs to be assigned, two-user RLS tests are outstanding, and the local business/offer flow remains a browser prototype. Account deletion is implemented but has not been exercised against a real invited account. Invite only a supervised cohort after these items are complete and the shared flows pass authenticated RLS verification.
+The pilot is not ready for public or general invited use yet. Supabase Anonymous Auth and CAPTCHA still need to be enabled in project settings; no recovery method exists for anonymous accounts. A moderator still needs to be assigned, and the local business/offer flow remains a browser prototype. Account deletion is implemented but has not been exercised against a real invited account. The requested two-user RLS regression checks pass in a rollback transaction, but full browser auth/upload/moderation/deletion flows still need a real invited account.
 
 Before public launch:
 
 1. Enable Anonymous Auth and CAPTCHA in Supabase settings; decide how users will recover accounts before using the pilot beyond a supervised test.
 2. Assign and train a moderator, then confirm report review, hide/publish actions, and photo deletion/retention.
 3. Add an accessible privacy notice and consent for public issue images; never expose exact device coordinates.
-4. Test account deletion and content ownership controls; test each RLS rule using separate accounts.
+4. Exercise account deletion and content ownership controls with a dedicated test account; continue adding regression cases as moderation and business features expand.
 5. Confirm that a human moderator can publish a report and that another authenticated user sees only published issues and their authorized image.
 6. Complete a privacy review and staged deployment check before promoting beyond the preview domain.
 

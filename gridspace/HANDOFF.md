@@ -52,3 +52,7 @@ Even then, determined spoofing can never be made impossible; the aim is to make 
 ## Media and account features
 
 The local issue preview accepts an optional photo, resizes to 512 px, re-encodes WebP, and keeps it only in this browser. The Supabase issue schema has a separate private media bucket with authenticated grid-scoped Storage policies; it is not yet connected to the UI. Never treat local photo storage as shared or durable.
+
+## Pilot implementation status · 2026-11-21
+
+The `Product rules` section above is preserved as the product baseline. The invited pilot now has a separate Supabase-backed path for shared thoughts, issue reports, follows, private issue photos, reporting/moderation, and account deletion. Choosing **Local preview** still uses browser-only data. Supabase Anonymous Auth and CAPTCHA settings still require Dashboard setup; moderator assignment, an account recovery path, and real-account end-to-end verification are still outstanding. See `docs/launch-readiness.md` before inviting participants.

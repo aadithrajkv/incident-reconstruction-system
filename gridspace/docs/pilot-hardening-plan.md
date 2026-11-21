@@ -20,7 +20,9 @@
 
 ## Step 2 verification
 
-After implementation, verify the function's JWT handling and input validation, ensure no raw coordinates or service-role secret enter browser files, check that no existing RLS policy was weakened, and report any live behavior that cannot be exercised without a signed-in pilot account.
+- `assign-home-grid` is deployed with JWT verification and rejects invalid coordinates or accuracy over 1,000 m; it computes the same axial hex ID as `app.js` and stores only that grid ID.
+- An unauthenticated request returned 401. Database ACL inspection confirmed only `service_role` can execute the assignment RPC. No service-role key or raw coordinate is in the browser/repository.
+- The location-assignment endpoint itself was not exercised with an authenticated pilot account because Anonymous Auth is not yet enabled.
 
 ## Step 3 verification
 
@@ -33,7 +35,7 @@ After implementation, verify the function's JWT handling and input validation, e
 
 - `app.js` now uses Supabase for shared thought, issue, and follow reads/writes. Issue rows use the existing pending-review policy and photos upload to the existing private bucket.
 - Shared thought seeds and the 15-active-thought grid cap are enforced in Postgres. Six-grid follows remain protected by the existing database trigger.
-- `node --check app.js`, Deno checks for both Edge Functions, and `git diff --check` pass. The migration and function behavior still needs a two-user authenticated RLS run in Step 7; the local Docker database could not be started because its image pull failed.
+- `node --check app.js`, Deno checks for the Edge Functions, and `git diff --check` pass. The two-user policy checks were completed in Step 7 inside a rollback transaction. The local Docker database could not be started because its image pull failed.
 
 ## Step 5 verification
 
@@ -48,6 +50,12 @@ After implementation, verify the function's JWT handling and input validation, e
 - Account deletion enumerates and removes the user's private issue photos, then deletes the Auth user so database foreign-key cascades clear user-owned data.
 - `app.js` passes syntax checking and both Edge Functions pass `deno check`. The irreversible path has not been exercised against a real invited account; the first end-to-end deletion should use a dedicated test account.
 - Supabase service logs, backups, and infrastructure retention are not controlled by the app's deletion endpoint; confirm those retention terms before a broader launch.
+
+## Step 7 verification
+
+- Ran `supabase/tests/database/pilot_rls.test.sql` against the Mumbai pilot database in one transaction and rolled back both synthetic users and all fixtures afterward.
+- The script returned PASS for pending-issue isolation, cross-grid thought insert rejection, moderation-column protection, and the six-follow limit. A follow-up query confirmed the fixture users, issue, and subscriptions were absent after rollback.
+- This does not verify the browser's complete auth/upload/delete flows; those still require an invited test account and moderator assignment.
 
 ## Anonymous pilot constraints
 
