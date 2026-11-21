@@ -53,7 +53,7 @@ function jsonError(status: number, error: string): Response {
 
 function gridIdFor(lat: number, lng: number): string {
   // Keep this in sync with merc() and hexOf() in app.js.
-  const x = R0 * (lng * Math.PI) / 180;
+  const x = R0 * lng * Math.PI / 180;
   const y = R0 * Math.log(Math.tan(Math.PI / 4 + (lat * Math.PI) / 360));
   const q = ((SQRT3 / 3) * x - y / 3) / RM;
   const r = ((2 / 3) * y) / RM;
