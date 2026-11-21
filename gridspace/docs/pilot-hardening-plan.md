@@ -14,7 +14,7 @@
 3. Sign-in decision: approved anonymous Supabase Auth with a one-use invite gate. Changed `auth-config.js`, `index.html`, `app.js`, `supabase/config.toml`, `supabase/migrations/20261121063513_anonymous_pilot_invites_and_access.sql`, and `supabase/functions/redeem-pilot-invite/{index.ts,deno.json,.npmrc,deno.lock}`. The hosted Anonymous Sign-Ins and CAPTCHA provider settings still need Dashboard configuration. Supabase anonymous sessions cannot be recovered after clearing browser data or signing out; a real recovery path needs a linked verified email, phone, or OAuth identity.
 4. Shared data: completed in `app.js` and migrations `20261121080000_shared_pilot_contributions.sql` and `20261121081000_private_seed_refresh.sql`. Invited users read/write shared thoughts, issues, and follows; local preview remains browser-only. The database enforces the daily seed balance and 15-active-thought cap. Issue images are resized and uploaded to the private bucket; new issues remain pending review. LocalStorage is stripped of shared contributions in authenticated mode.
 5. Safety and moderation: implemented in `app.js`, `supabase/functions/moderate-content/`, `supabase/config.toml`, and migrations `20261121090000_reports_and_moderation.sql` and `20261121100000_report_rate_limit.sql`. Reports are private to the reporter/moderators, limited to 10 per hour per user, and only one report per user/content. Moderators can publish/hide reported content through the JWT-verified Edge Function. A trusted operator still needs to add a moderator user ID in the private role table.
-6. Deletion: add `supabase/functions/delete-account/index.ts` and account/content deletion controls in `app.js`; preserve owner-only delete rules and document retention/deletion behavior.
+6. Deletion: implemented with `supabase/functions/delete-account/` and `supabase/functions/delete-own-content/`, account/content controls in `index.html` and `app.js`, and the existing owner-scoped RLS policies. Account deletion removes private issue photos before deleting the Auth user; foreign-key cascades remove owned content, follows, reports, and profile rows.
 7. Access tests: add two-user RLS tests under `supabase/tests/database/` for pending issue isolation, grid assignment enforcement, protected moderation fields, and the six-follow cap.
 8. Product and launch decisions: reconcile `docs/launch-readiness.md`, `docs/production-architecture.md`, `docs/phone-otp-login.md`, `docs/grid-subscriptions.md`, and `docs/real-data-and-user-stories.md`. Keep the first cohort non-commercial; defer payments and AI inference until separately costed and approved. Keep legal consent/retention wording subject to qualified India privacy counsel.
 
@@ -41,6 +41,13 @@ After implementation, verify the function's JWT handling and input validation, e
 - `moderate-content` is deployed with JWT verification enabled. Its server-only database RPC cannot be executed by the `authenticated` role; `service_role` can execute it.
 - The security advisor reports only INFO findings for private tables with RLS and no direct policies. No exposed `SECURITY DEFINER` warning remains.
 - A moderator account has not been assigned yet, so the queue and publish/hide flow cannot be exercised until an invited account exists and an operator adds its UUID to `private.moderators`.
+
+## Step 6 verification
+
+- Both delete Edge Functions are deployed with JWT verification enabled. Content deletion derives the owner from the verified JWT and deletes only that user's thought or issue; the existing RLS policies were not changed.
+- Account deletion enumerates and removes the user's private issue photos, then deletes the Auth user so database foreign-key cascades clear user-owned data.
+- `app.js` passes syntax checking and both Edge Functions pass `deno check`. The irreversible path has not been exercised against a real invited account; the first end-to-end deletion should use a dedicated test account.
+- Supabase service logs, backups, and infrastructure retention are not controlled by the app's deletion endpoint; confirm those retention terms before a broader launch.
 
 ## Anonymous pilot constraints
 

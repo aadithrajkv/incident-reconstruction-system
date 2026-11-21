@@ -22,19 +22,20 @@
 - Accurate device location is sent only to the `assign-home-grid` Edge Function; the server recomputes the grid and stores only the grid ID.
 - Invited users read/write shared thoughts, issue reports, and followed grids. Thought seeds and the 15-active-thought cap are enforced in Postgres. Issues are private to their author until moderation publishes them.
 - Members can report published thoughts or issues. Reports are private to their author and moderators, with one report per member/content and a 10-report hourly cap. A moderator-only queue can publish or hide content and writes a private action audit.
+- Members can delete their own thoughts and issues. The account dialog permanently deletes the anonymous Auth user, its database-owned data, and referenced private issue photos.
 - Authenticated contribution data is loaded from Supabase, not retained in browser storage. The explicit local-preview path stays browser-only.
-- Local business/offer setup, realtime updates, and push notifications remain unconnected. Account deletion and moderator assignment are still outstanding.
+- Local business/offer setup, realtime updates, and push notifications remain unconnected. A moderator still needs to be assigned.
 
 ## Not ready for public traffic
 
-The pilot is not ready for public or general invited use yet. Supabase Anonymous Auth and CAPTCHA still need to be enabled in project settings; no recovery method exists for anonymous accounts. A moderator still needs to be assigned, account deletion and two-user RLS tests are outstanding, and the local business/offer flow remains a browser prototype. Invite only a supervised cohort after these items are complete and the shared flows pass authenticated RLS verification.
+The pilot is not ready for public or general invited use yet. Supabase Anonymous Auth and CAPTCHA still need to be enabled in project settings; no recovery method exists for anonymous accounts. A moderator still needs to be assigned, two-user RLS tests are outstanding, and the local business/offer flow remains a browser prototype. Account deletion is implemented but has not been exercised against a real invited account. Invite only a supervised cohort after these items are complete and the shared flows pass authenticated RLS verification.
 
 Before public launch:
 
 1. Enable Anonymous Auth and CAPTCHA in Supabase settings; decide how users will recover accounts before using the pilot beyond a supervised test.
 2. Assign and train a moderator, then confirm report review, hide/publish actions, and photo deletion/retention.
 3. Add an accessible privacy notice and consent for public issue images; never expose exact device coordinates.
-4. Add account deletion and content ownership controls; test each RLS rule using separate accounts.
+4. Test account deletion and content ownership controls; test each RLS rule using separate accounts.
 5. Confirm that a human moderator can publish a report and that another authenticated user sees only published issues and their authorized image.
 6. Complete a privacy review and staged deployment check before promoting beyond the preview domain.
 

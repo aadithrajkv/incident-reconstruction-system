@@ -458,3 +458,15 @@ enabled = true
 verify_jwt = true
 import_map = "./functions/moderate-content/deno.json"
 entrypoint = "./functions/moderate-content/index.ts"
+
+[functions.delete-account]
+enabled = true
+verify_jwt = true
+import_map = "./functions/delete-account/deno.json"
+entrypoint = "./functions/delete-account/index.ts"
+
+[functions.delete-own-content]
+enabled = true
+verify_jwt = true
+import_map = "./functions/delete-own-content/deno.json"
+entrypoint = "./functions/delete-own-content/index.ts"
