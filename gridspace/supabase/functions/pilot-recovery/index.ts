@@ -6,6 +6,8 @@ const ALLOWED_ORIGINS = new Set([
   "https://thotox.com",
   "https://www.thotox.com",
   "http://localhost:8765",
+  "http://localhost:8000",
+  "http://127.0.0.1:8000",
   "http://127.0.0.1:8765",
 ]);
 

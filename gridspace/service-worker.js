@@ -1,4 +1,4 @@
-const CACHE = "thotox-shell-v4";
+const CACHE = "thotox-shell-v8";
 const SHELL = [
   "/",
   "/index.html",

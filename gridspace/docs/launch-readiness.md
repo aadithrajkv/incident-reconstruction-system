@@ -1,5 +1,7 @@
 # Thotox pilot launch readiness
 
+> 2026-11-22 update: the local implementation now uses India mobile OTP and server-backed business review. See [phone login](phone-otp-login.md) and the [current production trial plan](PRODUCTION_TRIAL.md). Older anonymous-preview descriptions below are historical; hosted deployment remains unverified.
+
 ## Product pass in this workspace
 
 - Contributions are grouped by the grid and labeled **Local issue**, **Local business**, or **Thought**.

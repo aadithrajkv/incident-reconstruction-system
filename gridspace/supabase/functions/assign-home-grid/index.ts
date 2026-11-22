@@ -2,6 +2,8 @@ import "@supabase/functions-js/edge-runtime.d.ts";
 import { withSupabase } from "@supabase/server";
 
 const MAX_ACCURACY_METERS = 1_000;
+const MAX_FIX_AGE_MS = 120_000;
+const MAX_FUTURE_SKEW_MS = 30_000;
 const MAX_LATITUDE = 90;
 const R0 = 6_378_137;
 const SQRT3 = Math.sqrt(3);
@@ -11,6 +13,8 @@ const ALLOWED_ORIGINS = new Set([
   "https://thotox.com",
   "https://www.thotox.com",
   "http://localhost:8765",
+  "http://localhost:8000",
+  "http://127.0.0.1:8000",
   "http://127.0.0.1:8765",
 ]);
 
@@ -18,6 +22,7 @@ type AssignmentRequest = {
   lat: number;
   lng: number;
   accuracy: number;
+  observedAt: number;
 };
 
 function corsHeaders(request: Request): Headers {
@@ -70,20 +75,38 @@ function gridIdFor(lat: number, lng: number): string {
   return `${a},${b}`;
 }
 
+function boundaryMarginMeters(lat: number, lng: number, gridId: string): number {
+  // The user's accuracy circle must fit inside the hex before we assign a home grid.
+  const [q, r] = gridId.split(",").map(Number);
+  const [x, y] = [
+    R0 * lng * Math.PI / 180,
+    R0 * Math.log(Math.tan(Math.PI / 4 + (lat * Math.PI) / 360)),
+  ];
+  const [cx, cy] = [RM * SQRT3 * (q + r / 2), RM * 1.5 * r];
+  const apothem = RM * SQRT3 / 2;
+  let furthest = 0;
+  for (let i = 0; i < 6; i++) {
+    const angle = Math.PI / 6 + i * Math.PI / 3;
+    furthest = Math.max(furthest, (x - cx) * Math.cos(angle) + (y - cy) * Math.sin(angle));
+  }
+  return Math.max(0, (apothem - furthest) * Math.cos(lat * Math.PI / 180));
+}
+
 function parseBody(value: unknown): AssignmentRequest | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
   const body = value as Record<string, unknown>;
-  if (Object.keys(body).some((key) => !["lat", "lng", "accuracy"].includes(key))) return null;
+  if (Object.keys(body).some((key) => !["lat", "lng", "accuracy", "observedAt"].includes(key))) return null;
 
-  const { lat, lng, accuracy } = body;
+  const { lat, lng, accuracy, observedAt } = body;
   if (
     typeof lat !== "number" || !Number.isFinite(lat) || lat <= -MAX_LATITUDE || lat >= MAX_LATITUDE ||
     typeof lng !== "number" || !Number.isFinite(lng) || lng < -180 || lng > 180 ||
     typeof accuracy !== "number" || !Number.isFinite(accuracy) || accuracy < 0 ||
+    typeof observedAt !== "number" || !Number.isSafeInteger(observedAt) ||
     accuracy > MAX_ACCURACY_METERS
   ) return null;
 
-  return { lat, lng, accuracy };
+  return { lat, lng, accuracy, observedAt };
 }
 
 const handleRequest = withSupabase({ auth: "user" }, async (request, ctx) => {
@@ -94,7 +117,7 @@ const handleRequest = withSupabase({ auth: "user" }, async (request, ctx) => {
   try {
     rawBody = await request.text();
   } catch {
-    return jsonError(400, "Send valid JSON with lat, lng, and accuracy.");
+    return jsonError(400, "Send valid JSON with lat, lng, accuracy, and observedAt.");
   }
   if (rawBody.length > 2_048) return jsonError(413, "Request body is too large.");
 
@@ -102,7 +125,7 @@ const handleRequest = withSupabase({ auth: "user" }, async (request, ctx) => {
   try {
     value = JSON.parse(rawBody);
   } catch {
-    return jsonError(400, "Send valid JSON with lat, lng, and accuracy.");
+    return jsonError(400, "Send valid JSON with lat, lng, accuracy, and observedAt.");
   }
 
   const location = parseBody(value);
@@ -110,7 +133,15 @@ const handleRequest = withSupabase({ auth: "user" }, async (request, ctx) => {
     return jsonError(422, `Location must be valid and accurate to within ${MAX_ACCURACY_METERS} m.`);
   }
 
+  const fixAgeMs = Date.now() - location.observedAt;
+  if (fixAgeMs < -MAX_FUTURE_SKEW_MS || fixAgeMs > MAX_FIX_AGE_MS) {
+    return jsonError(422, "Refresh your location before confirming this grid.");
+  }
+
   const gridId = gridIdFor(location.lat, location.lng);
+  if (boundaryMarginMeters(location.lat, location.lng, gridId) <= location.accuracy) {
+    return jsonError(422, "The reported accuracy overlaps a neighboring grid. Refresh location from farther inside the grid.");
+  }
   const { data, error } = await ctx.supabaseAdmin.rpc("assign_home_grid_server_only", {
     p_user_id: ctx.userClaims.id,
     p_grid_id: gridId,

@@ -1,0 +1,11 @@
+# Generated frontend output and local hosting state
+dist/
+.vercel/
+.firebase/
+firebase-debug.log*
+node_modules/
+# Local access material
+.pilot-invites.csv
+.env
+.env.*
+!.env.example

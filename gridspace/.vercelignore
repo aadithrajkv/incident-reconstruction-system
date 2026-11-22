@@ -1,0 +1,16 @@
+# Upload only the public app, deployment config and its dependency-free build script.
+/*
+!/index.html
+!/app.js
+!/auth-config.js
+!/manifest.webmanifest
+!/service-worker.js
+!/landmask.json.gz
+!/assets
+!/assets/**
+!/package.json
+!/package-lock.json
+!/vercel.json
+!/scripts
+/scripts/*
+!/scripts/build-static.mjs

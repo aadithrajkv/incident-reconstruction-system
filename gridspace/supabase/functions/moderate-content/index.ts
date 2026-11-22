@@ -6,6 +6,8 @@ const ALLOWED_ORIGINS = new Set([
   "https://thotox.com",
   "https://www.thotox.com",
   "http://localhost:8765",
+  "http://localhost:8000",
+  "http://127.0.0.1:8000",
   "http://127.0.0.1:8765",
 ]);
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
